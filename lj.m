@@ -1,23 +1,21 @@
 %This script plots a bunch of particles and their behavior
 %The script can read both 1D and 2D files
-close all
-clear all
-clc
+
 %%% DATA TO CHANGE %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-filename = 'input2d.txt'; %name of the data file which should be loaded
+%filename = 'input2d.txt'; %name of the data file which should be loaded
 sigma = 1;              %particle diameter
 epsilon = 1;            %material parameter
-time = 20;              %total time in seconds
-dt = 0.05;             %time step in seconds
+dt = .001;        %time step in seconds
+time = 1;              %total time in seconds
 method = 'Verlet';      %integration method
-borders = [105 130 105 130]; %set [x0 x1 y0 y1] to turn borders on (particles bounce), 0 is off
+borders = [0 30 -10 10]; %set [x0 x1 y0 y1] to turn borders on (particles bounce), 0 is off
 output = '';            %name of the output file. Set '' for no output
 movie = 'output';       %movie output name. Set '' for no movie output
-fps = 30;               %FPS for movie
+fps = 90;               %FPS for movie
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 b=zeros(size(borders));      %border comparator
 timesteps = time/dt+1; %number of timesteps to be calculated
-[x, y, v, u, m, variables, N] = loadfile( filename, timesteps ); %load the data
+%[x, y, v, u, m, variables, N] = loadfile( filename, timesteps ); %load the data
 
 V = zeros(N,timesteps); %allocate potential energy array
 T = zeros(N,timesteps); %allocate kinetic energy array
@@ -48,8 +46,8 @@ for t=1:time/dt+1
                 f_y(j) = n(2)*-4*epsilon*((6*sigma^6)/rij^7 - (12*sigma^12)/rij^13);
                 
                 %potential energy
-                V_j(j) = 4*epsilon*((sigma/rij)^12-(sigma/rij)^6);
-            
+                %V_j(j) = 4*epsilon*((sigma/rij)^12-(sigma/rij)^6);
+                V_j(j) = 4*(rij^(-14)-rij^(-8));
             else %if i=j: force=0, potential=0
                 f_x(j) = 0;
                 f_y(j) = 0;
@@ -67,14 +65,29 @@ for t=1:time/dt+1
             y(i,t+1) = y(i,t) + u(i,t)*dt;
             u(i,t+1) = u(i,t) + sum(f_y)/m(i)*dt;
             
+            %BC
+            v(51:1:55,t)=0.003005453;
+            v(1:1:Ny,t)=0;
+            u(1:1:Ny,t)=0; 
+            x(1:1:5,t)=1;
+            for xyz=1:1:5
+                y(xyz,t)=xyz;
+            end
         elseif(strcmp('Verlet',method))
             %Verlet algorithm x
             x(i,t+1) = -x(i,t-1) + 2*x(i,t) + sum(f_x)/m(i)*dt^2;
             v(i,t) = (x(i,t-1) - x(i,t+1))/(2*dt);
-           
             %Verlet algorithm y
             y(i,t+1) = -y(i,t-1) + 2*y(i,t) + sum(f_y)/m(i)*dt^2;
             u(i,t) = (y(i,t-1) - y(i,t+1))/(2*dt);
+            %BC
+            x(1:1:5,t)=1;
+            for xyz=1:1:5
+                y(xyz,t)=xyz;
+            end
+            v(51:1:55,t)=0.003005453;
+            v(1:1:Ny,t)=0;
+            u(1:1:Ny,t)=0; 
         else
             disp('No valid integration method given!');
         end
@@ -149,7 +162,8 @@ if ~(strcmp('',movie))
     mov = VideoWriter(movie, 'MPEG-4');
     mov.FrameRate = fps;
     open(mov);
-    for k=1:round(1/dt/fps):timesteps %pick the points for the correct number of fps
+    %for k=1:round(1/dt/fps):timesteps %pick the points for the correct number of fps
+     for k=1:10:timesteps %pick the points for the correct number of fps
         circle = linspace(0,2*pi,100); %create a circle
         hold on;
         for n=1:N %plot N circles...
