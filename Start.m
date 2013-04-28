@@ -79,4 +79,5 @@ m(1:1:Nx*Ny,1)=1;
 N=55;
 variables=5;
 
+clearvars -except x y v u m variables N             %Just to be careful, remove all but needed
 lj
