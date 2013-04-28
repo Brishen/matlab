@@ -5,16 +5,16 @@
 %filename = 'input2d.txt'; %name of the data file which should be loaded
 sigma = 1;              %particle diameter
 epsilon = 1;            %material parameter
-dt = .001;        %time step in seconds
+dt = .005;        %time step in seconds
 time = 1;              %total time in seconds
 method = 'Verlet';      %integration method
-borders = [0 30 -10 10]; %set [x0 x1 y0 y1] to turn borders on (particles bounce), 0 is off
+borders = [0 30 -5 10];           %set [x0 x1 y0 y1] to turn borders on (particles bounce), 0 is off
 output = '';            %name of the output file. Set '' for no output
 movie = 'output';       %movie output name. Set '' for no movie output
-fps = 90;               %FPS for movie
+fps = 20;               %FPS for movie
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 b=zeros(size(borders));      %border comparator
-timesteps = time/dt+1; %number of timesteps to be calculated
+timesteps = round(time/dt+1); %number of timesteps to be calculated
 %[x, y, v, u, m, variables, N] = loadfile( filename, timesteps ); %load the data
 
 V = zeros(N,timesteps); %allocate potential energy array
@@ -24,30 +24,30 @@ f_y = zeros(1,N);       %allocate force matrix y-direction
 V_j = zeros(1,N);       %allocate LennardJones potential matrix
 
 %%% Calculation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-for t=1:time/dt+1
-    for i=1:N
-        for j=1:N %set force/energy interactions for each particle
+for t=1:timesteps
+    for i=6:N
+        for j=6:N %set force/energy interactions for each particle
             if i~=j %don't take self inducting terms into account
-                
-                %We should use switch/case and isequal() so we can set
-                %individual forces and velocities
-                %Brishen
-                
+           
                 %compute the distance
-                rij = sqrt((x(i,t)-x(j,t))^2+ (y(i,t)-y(j,t))^2);
+                rij = sqrt( (x(i,t)-x(j,t))^2  +  (y(i,t)-y(j,t))^2  );
                 
                 %compute unit normal vector, n(1)=n_x, n(2)=n_y
                 n = [ x(i,t)-x(j,t) y(i,t)-y(j,t) ]/norm([ x(i,t)-x(j,t) y(i,t)-y(j,t) ]);
                 
                 %for x direction
-                f_x(j) = n(1)*-4*epsilon*((6*sigma^6)/rij^7 - (12*sigma^12)/rij^13);
-                
+                %f_x(j) = n(1)*-4*epsilon*((6*sigma^6)/rij^7 - (12*sigma^12)/rij^13);
+                f_x(j) = n(1)*      -48*      (0.5*rij^(-6)    -      rij^(-12));
                 %for y direction
-                f_y(j) = n(2)*-4*epsilon*((6*sigma^6)/rij^7 - (12*sigma^12)/rij^13);
-                
+                %f_y(j) = n(2)*-4*epsilon*((6*sigma^6)/rij^7 - (12*sigma^12)/rij^13);
+                f_y(j) = n(2)*      -48*      (0.5*rij^(-6)    -      rij^(-12));
+
                 %potential energy
                 %V_j(j) = 4*epsilon*((sigma/rij)^12-(sigma/rij)^6);
-                V_j(j) = 4*(rij^(-14)-rij^(-8));
+                V_j(j) = 4*(   rij^(-12)   -   rij^(-6)   );
+                
+                
+                
             else %if i=j: force=0, potential=0
                 f_x(j) = 0;
                 f_y(j) = 0;
@@ -58,6 +58,7 @@ for t=1:time/dt+1
         %Compute the position and velocity using Euler or Verlet
         if (strcmp('Euler',method) || t==1) %first timestap is always Euler   
             % Forward Euler x
+            v(51:1:55,t)=0.003005453;
             x(i,t+1) = x(i,t) + v(i,t)*dt;
             v(i,t+1) = v(i,t) + sum(f_x)/m(i)*dt;
             
@@ -67,27 +68,36 @@ for t=1:time/dt+1
             
             %BC
             v(51:1:55,t)=0.003005453;
-            v(1:1:Ny,t)=0;
-            u(1:1:Ny,t)=0; 
+            %v(1:1:5,t)=0;
+            %u(1:1:5,t)=0; 
+            %u(1:1:55,t)=0;
             x(1:1:5,t)=1;
             for xyz=1:1:5
                 y(xyz,t)=xyz;
+                y(xyz+50,t)=xyz;
             end
+            
+            
         elseif(strcmp('Verlet',method))
+            v(51:1:55,t)=0.003005453;
             %Verlet algorithm x
             x(i,t+1) = -x(i,t-1) + 2*x(i,t) + sum(f_x)/m(i)*dt^2;
             v(i,t) = (x(i,t-1) - x(i,t+1))/(2*dt);
             %Verlet algorithm y
             y(i,t+1) = -y(i,t-1) + 2*y(i,t) + sum(f_y)/m(i)*dt^2;
             u(i,t) = (y(i,t-1) - y(i,t+1))/(2*dt);
+            
             %BC
+            v(51:1:55,t)=0.003005453;
+            %v(1:1:5,t)=0;
+            %u(1:1:5,t)=0; 
+            %u(1:1:55,t)=0;
             x(1:1:5,t)=1;
             for xyz=1:1:5
                 y(xyz,t)=xyz;
+                y(xyz+50,t)=xyz;
             end
-            v(51:1:55,t)=0.003005453;
-            v(1:1:Ny,t)=0;
-            u(1:1:Ny,t)=0; 
+            
         else
             disp('No valid integration method given!');
         end
@@ -163,7 +173,7 @@ if ~(strcmp('',movie))
     mov.FrameRate = fps;
     open(mov);
     %for k=1:round(1/dt/fps):timesteps %pick the points for the correct number of fps
-     for k=1:10:timesteps %pick the points for the correct number of fps
+     for k=1:round(1/dt/fps):timesteps %pick the points for the correct number of fps
         circle = linspace(0,2*pi,100); %create a circle
         hold on;
         for n=1:N %plot N circles...

@@ -60,7 +60,7 @@ end
 %cases
 
 v(1:1:Ny,1)=0;             %Script switches u and v because it is stupid
-v(6:1:10,1)=-0.003005453;   %This is different to account for the right end
+v(6:1:10,1)=-0.003005453;  %This is different to account for the right end
 v(11:1:15,1)=0.313369;
 v(16:1:20,1)=-0.313369;
 v(21:1:25,1)=0.313369;
@@ -78,5 +78,7 @@ m(1:1:Nx*Ny,1)=1;
 
 N=55;
 variables=5;
+
+clearvars -except x y v u m variables N
 
 lj
